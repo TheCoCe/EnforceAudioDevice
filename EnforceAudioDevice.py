@@ -503,7 +503,7 @@ class EnforceAudioDeviceTrayIcon(QSystemTrayIcon):
         super(EnforceAudioDeviceTrayIcon, self).__init__(app)
         self.app = app
         self.create_tray_menu()
-        self.autostart.setChecked(self.app.settings.contains(APP_NAME))
+        self.act_autostart.setChecked(self.app.settings.contains(APP_NAME))
 
     # ------------------------------------------------------------------------------------------
 
@@ -514,26 +514,42 @@ class EnforceAudioDeviceTrayIcon(QSystemTrayIcon):
         self.setVisible(True)
 
         # Creating the options
-        self.menu = QMenu()
+        self.menu = QMenu("Options")
+        # Creating config sub menu
+        self.config_menu = QMenu("Config")
 
         # Create reload option
-        self.reload = self.menu.addAction(
+        self.act_reload = self.config_menu.addAction(
             "Reload Config", self.app.start_reload_config)
 
+        self.config_menu.addSeparator()
+
+        # Create open config file option
+        self.act_open_config = self.config_menu.addAction(
+            "Open Config", self.open_config_file)
+
         # Create open config folder option
-        self.open_config = self.menu.addAction(
-            "Open Config Folder", self.open_config_folder)
+        self.act_open_config_dir = self.config_menu.addAction(
+            "Go to Config", self.open_config_folder)
+
+        self.config_menu.addSeparator()
+
+        # Create open log option
+        self.act_open_log = self.config_menu.addAction(
+            "Open Log", self.open_log_file)
+
+        # add the config menu to the menu
+        self.act_open_config_menu = self.menu.addMenu(self.config_menu)
 
         # Create autostart option
-        self.autostart = self.menu.addAction(
+        self.act_autostart = self.menu.addAction(
             "Launch on Boot", self.toggle_autostart_state)
-        self.autostart.setCheckable(True)
+        self.act_autostart.setCheckable(True)
 
-        # separator
         self.menu.addSeparator()
 
         # Create quit option
-        self.quit = self.menu.addAction("Quit", self.app.start_quit)
+        self.act_quit = self.menu.addAction("Quit", self.app.start_quit)
 
         # Adding options to the System Tray
         self.setContextMenu(self.menu)
@@ -547,7 +563,7 @@ class EnforceAudioDeviceTrayIcon(QSystemTrayIcon):
             self.app.settings.remove(APP_NAME)
         else:
             self.app.settings.setValue(APP_NAME, sys.argv[0])
-        self.autostart.setChecked(new_state)
+        self.act_autostart.setChecked(new_state)
         logging.info(
             f'Added {APP_NAME} to autostart' if new_state else f'Removed {APP_NAME} from autostart')
 
@@ -556,6 +572,16 @@ class EnforceAudioDeviceTrayIcon(QSystemTrayIcon):
     def open_config_folder(self):
         path = os.path.dirname(CONFIG_FILE_PATH)
         os.startfile(path)
+
+    # ------------------------------------------------------------------------------------------
+
+    def open_config_file(self):
+        os.startfile(CONFIG_FILE_PATH)
+
+    # ------------------------------------------------------------------------------------------
+
+    def open_log_file(self):
+        os.startfile(LOG_FILE_PATH)
 
 
 # ------------------------------------------------------------------------------------------
