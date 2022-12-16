@@ -29,7 +29,7 @@ Right click the tray icon to reload the config, quit the app or to set the autos
   }
 ```
 
-> :info: **How do I know the exe name?**</br> Open the task manager, find your applicationd and right click and choose `Properties` (You might need to click a subprocess). Go to the `General`. The exact name of the exe will be show at the top.
+> ❔ **How do I know the exe name?**</br> Open the task manager, find your applicationd and right click and choose `Properties` (You might need to click a subprocess). Go to the `General`. The exact name of the exe will be show at the top.
 
 - Reload the application by right clicking the tray icon and choosing `Config` → `Reload Config`
 - Enjoy the correct audio devices
