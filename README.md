@@ -18,8 +18,8 @@ Right click the tray icon to reload the config, quit the app or to set the autos
 - Download the latest version from the [Releases](https://github.com/TheCoCe/EnforceAudioDevice/releases/latest)
 - Move the `EnforceAudioDevice.exe` to your preferred location (this will generate files, so you might want to place it into a folder)
 - Start the application
-- Open the newly created config file and set the `SoundVolumeViewPath":` to your exe path. E.g. `C:\Programs\SoundVolumeView.exe`
-- Add applications to the config file and set your preferred audio device per app, e.g.:
+- Open the newly created config file (click the tray icon, choose Config → Open Config) and set the `SoundVolumeViewPath":` to your exe path, e.g. `C:\Programs\SoundVolumeView\SoundVolumeView.exe`
+- Add applications to the config file and set your preferred audio device per app. The name should be the name of the exe file e.g.:
 ```json
 "Apps": {
     "firefox": { "Device": "System" },
@@ -28,7 +28,10 @@ Right click the tray icon to reload the config, quit the app or to set the autos
     "ffxiv": { "Device": "Game"}
   }
 ```
-- Reload the application by right clicking the tray icon and choosing `Reload`
+
+> :info: **How do I know the exe name?**</br> Open the task manager, find your applicationd and right click and choose `Properties` (You might need to click a subprocess). Go to the `General`. The exact name of the exe will be show at the top.
+
+- Reload the application by right clicking the tray icon and choosing `Config` → `Reload Config`
 - Enjoy the correct audio devices
 
 You could also run the tool right from the `EnforceAudioDevice.py` if you have the required packages installed.

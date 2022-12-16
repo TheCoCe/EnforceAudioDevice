@@ -48,7 +48,7 @@ def app_path(relative_path):
 # name of the application
 APP_NAME = 'EnforceAudioDevice'
 # files
-CONFIG_FILE_PATH = app_path('Config.json')
+CONFIG_FILE_PATH = app_path('EnforceAudioDevice.json')
 LOG_FILE_PATH = app_path('EnforceAudioDevice.log')
 VALID_DEVICES_FILE_PATH = app_path('ValidDevices.json')
 # resources
