@@ -20,25 +20,16 @@ from plyer import notification
 
 # path to the app config json file
 APPCONFIGJSON = 'Config.json'
-
-# setup logging
-logging.basicConfig(
-    level=logging.INFO,
-    format="%(asctime)s [%(levelname)s] %(message)s",
-    handlers=[
-        logging.FileHandler("EnforceAudioDevice.log", "w"),
-        logging.StreamHandler(sys.stdout)
-    ]
-)
-
 TRAY_TOOLTIP = 'EnforceAudioDevice'
 TRAY_ICON = 'EnforceAudioDevice.ico'
 ALERT_ICON = 'EnforceAudioDeviceAlert.ico'
 APP_NAME = 'EnforceAudioDevice'
+LOG_FILE = 'EnforceAudioDevice.log'
 RUN_PATH = "HKEY_CURRENT_USER\\Software\\Microsoft\\Windows\\CurrentVersion\\Run"
+# need to define base path due to app launching via windows autostart
+BASE_PATH = os.path.dirname(sys.argv[0])
 
 # ------------------------------------------------------------------------------------------
-
 
 def resource_path(relative_path):
     """ Get absolute path to resource, works for dev and for PyInstaller """
@@ -46,10 +37,21 @@ def resource_path(relative_path):
         # PyInstaller creates a temp folder and stores path in _MEIPASS
         base_path = sys._MEIPASS
     except Exception:
-        base_path = os.path.abspath(".")
+        base_path = BASE_PATH
 
     return os.path.join(base_path, relative_path)
 
+# ------------------------------------------------------------------------------------------
+
+# setup logging
+logging.basicConfig(
+    level=logging.INFO,
+    format="%(asctime)s [%(levelname)s] %(message)s",
+    handlers=[
+        logging.FileHandler(os.path.join(BASE_PATH, LOG_FILE), "w"),
+        logging.StreamHandler(sys.stdout)
+    ]
+)
 
 ############################################################################################
 # ProcesWatcher
@@ -344,15 +346,16 @@ class EnforceAudioDeviceApp(QApplication):
     def load_config_json(self):
         """loads the apps from the apps json file"""
         # check if the config exists, if not, create one filled with example data
-        if os.path.exists(APPCONFIGJSON):
+        config_path = os.path.join(BASE_PATH, APPCONFIGJSON)
+        if os.path.exists(config_path):
             config = {}
             # load the config file data
-            with open(APPCONFIGJSON, "r", encoding='UTF-8') as file:
+            with open(config_path, "r", encoding='UTF-8') as file:
                 try:
                     config = json.load(file)
                 except json.JSONDecodeError:
                     logging.error(
-                        f'Failed to load \'{os.path.abspath(APPCONFIGJSON)}\', aborting!')
+                        f'Failed to load \'{APPCONFIGJSON}\', aborting!')
                 finally:
                     file.close()
             # load audio valid audio devices, the SoundVolumeView path and apps. Exit if any of these fail.
@@ -367,7 +370,7 @@ class EnforceAudioDeviceApp(QApplication):
                 outfile.write(data)
             outfile.close()
             logging.info(
-                f'Created: \'{os.path.abspath(APPCONFIGJSON)}\'. Please add your apps to the file and reload the config.')
+                f'Created: \'{config_path}\'. Please add your apps to the file and reload the config.')
             self.send_notify("Enforce Audio Device Info",
                             f'Created: \'{APPCONFIGJSON}\'.\nPlease add your apps to the file and reload the config.', resource_path(ALERT_ICON))
         return True
