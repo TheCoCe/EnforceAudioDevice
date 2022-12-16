@@ -4,8 +4,6 @@ import subprocess
 import time
 import json
 import logging
-# config settings validation
-from pathlib import Path
 # watch for processes
 import wmi
 import pythoncom
@@ -18,28 +16,48 @@ from plyer import notification
 
 # ------------------------------------------------------------------------------------------
 
-# path to the app config json file
-APPCONFIGJSON = 'Config.json'
-TRAY_TOOLTIP = 'EnforceAudioDevice'
-TRAY_ICON = 'EnforceAudioDevice.ico'
-ALERT_ICON = 'EnforceAudioDeviceAlert.ico'
-APP_NAME = 'EnforceAudioDevice'
-LOG_FILE = 'EnforceAudioDevice.log'
-RUN_PATH = "HKEY_CURRENT_USER\\Software\\Microsoft\\Windows\\CurrentVersion\\Run"
-# need to define base path due to app launching via windows autostart
-BASE_PATH = os.path.dirname(sys.argv[0])
-
-# ------------------------------------------------------------------------------------------
 
 def resource_path(relative_path):
     """ Get absolute path to resource, works for dev and for PyInstaller """
-    try:
-        # PyInstaller creates a temp folder and stores path in _MEIPASS
-        base_path = sys._MEIPASS
-    except Exception:
-        base_path = BASE_PATH
+    # PyInstaller creates a temp folder and stores the path in _MEIPASS, so if we are in a packaged build we
+    # use the _MEIPASS as the relative base path, otherwise we'll use the working directory
+    base_path = getattr(sys, '_MEIPASS', os.path.dirname(
+        os.path.abspath(__file__)))
 
     return os.path.join(base_path, relative_path)
+
+# ------------------------------------------------------------------------------------------
+
+
+def app_path(relative_path):
+    """Get the absolute path to the file relative to the executable"""
+    if getattr(sys, 'frozen', False):
+        # if we are in a bundled app, we need to use the path of the executable
+        # as this is where files like the config or log should go
+        base_path = os.path.dirname(sys.executable)
+    else:
+        # if we are just executing the script as dev we need to use the path of the file
+        # as this is where files like the config or log should go
+        base_path = os.path.dirname(os.path.abspath(__file__))
+
+    return os.path.join(base_path, relative_path)
+
+# ------------------------------------------------------------------------------------------
+
+
+# name of the application
+APP_NAME = 'EnforceAudioDevice'
+# files
+CONFIG_FILE_PATH = app_path('Config.json')
+LOG_FILE_PATH = app_path('EnforceAudioDevice.log')
+VALID_DEVICES_FILE_PATH = app_path('ValidDevices.json')
+# resources
+TRAY_ICON_FILE_PATH = resource_path('EnforceAudioDevice.ico')
+ALERT_ICON_FILE_PATH = resource_path('EnforceAudioDeviceAlert.ico')
+# strings
+TRAY_TOOLTIP = 'EnforceAudioDevice'
+# registry key
+REG_RUN_PATH = "HKEY_CURRENT_USER\\Software\\Microsoft\\Windows\\CurrentVersion\\Run"
 
 # ------------------------------------------------------------------------------------------
 
@@ -48,7 +66,7 @@ logging.basicConfig(
     level=logging.INFO,
     format="%(asctime)s [%(levelname)s] %(message)s",
     handlers=[
-        logging.FileHandler(os.path.join(BASE_PATH, LOG_FILE), "w"),
+        logging.FileHandler(LOG_FILE_PATH, "w"),
         logging.StreamHandler(sys.stdout)
     ]
 )
@@ -56,6 +74,7 @@ logging.basicConfig(
 ############################################################################################
 # ProcesWatcher
 ############################################################################################
+
 
 class ProcessWatcher(QThread):
     """watches for wmi process creation or deletion events and signals when an event arrives"""
@@ -106,7 +125,7 @@ class ProcessWorker(QThread):
     process_dict = {}
     # the parent app containing config data
     app = None
-    # timers that delay the set audio device command (user defined in config)
+    # timers that delay the set audio device command (delay is user defined in config)
     delayedCommandTimers = []
 
     # ------------------------------------------------------------------------------------------
@@ -272,7 +291,7 @@ class EnforceAudioDeviceApp(QApplication):
 
     def create_settings(self):
         QCoreApplication.setApplicationName(APP_NAME)
-        self.settings = QSettings(RUN_PATH, QSettings.NativeFormat)
+        self.settings = QSettings(REG_RUN_PATH, QSettings.NativeFormat)
 
     # ------------------------------------------------------------------------------------------
 
@@ -346,16 +365,15 @@ class EnforceAudioDeviceApp(QApplication):
     def load_config_json(self):
         """loads the apps from the apps json file"""
         # check if the config exists, if not, create one filled with example data
-        config_path = os.path.join(BASE_PATH, APPCONFIGJSON)
-        if os.path.exists(config_path):
+        if os.path.exists(CONFIG_FILE_PATH):
             config = {}
             # load the config file data
-            with open(config_path, "r", encoding='UTF-8') as file:
+            with open(CONFIG_FILE_PATH, "r", encoding='UTF-8') as file:
                 try:
                     config = json.load(file)
                 except json.JSONDecodeError:
                     logging.error(
-                        f'Failed to load \'{APPCONFIGJSON}\', aborting!')
+                        f'Failed to load \'{CONFIG_FILE_PATH}\', aborting!')
                 finally:
                     file.close()
             # load audio valid audio devices, the SoundVolumeView path and apps. Exit if any of these fail.
@@ -366,13 +384,13 @@ class EnforceAudioDeviceApp(QApplication):
                 'MyExampleApp1.exe': "MyExampleAudioDevice", 'MyExampleApp2.exe': "MyExampleAudioDevice", }}
             data = json.dumps(default_config, indent=2)
             # write a default config file if the config doesn't exist
-            with open(APPCONFIGJSON, "w", encoding='UTF-8') as outfile:
+            with open(CONFIG_FILE_PATH, "w", encoding='UTF-8') as outfile:
                 outfile.write(data)
             outfile.close()
             logging.info(
-                f'Created: \'{config_path}\'. Please add your apps to the file and reload the config.')
+                f'Created: \'{CONFIG_FILE_PATH}\'. Please add your apps to the file and reload the config.')
             self.send_notify("Enforce Audio Device Info",
-                            f'Created: \'{APPCONFIGJSON}\'.\nPlease add your apps to the file and reload the config.', resource_path(ALERT_ICON))
+                             f'Created: \'{os.path.basename(CONFIG_FILE_PATH)}\'.\nPlease add your apps to the file and reload the config.', ALERT_ICON_FILE_PATH)
         return True
 
     # ------------------------------------------------------------------------------------------
@@ -389,14 +407,14 @@ class EnforceAudioDeviceApp(QApplication):
         path_valid = False
         if has_config and 'SoundVolumeViewPath' in config['Config']:
             self.sound_volume_view_path = config['Config']['SoundVolumeViewPath']
-        if Path(self.sound_volume_view_path).is_file():
+        if os.path.isfile(self.sound_volume_view_path):
             path_valid = True
 
         if not path_valid:
             logging.error(
                 f'Invalid Sound Volume View path \'{self.sound_volume_view_path}\'. Make sure the path is set correctly in the Config.json.')
             self.send_notify("Enforce Audio Device Error",
-                            f'Invalid Sound Volume View path \'{self.sound_volume_view_path}\'.\nMake sure the path is set correctly in the Config.json.', resource_path(ALERT_ICON))
+                             f'Invalid Sound Volume View path \'{self.sound_volume_view_path}\'.\nMake sure the path is set correctly in the Config.json.', ALERT_ICON_FILE_PATH)
             return False
 
         return True
@@ -405,19 +423,12 @@ class EnforceAudioDeviceApp(QApplication):
 
     def load_valid_audio_devices(self):
         """fills a dictionary of valid audio devices that can be used"""
-        script_path = os.path.abspath(os.path.dirname(__file__))
-        devices_json_path = Path(script_path + '\\ValidDevices.json')
-
         # if this file already exists, remove it
-        if devices_json_path.is_file():
-            os.remove(devices_json_path)
-
-        # wait until the file is removed
-        while devices_json_path.is_file():
-            time.sleep(1)
+        if os.path.isfile(VALID_DEVICES_FILE_PATH):
+            os.remove(VALID_DEVICES_FILE_PATH)
 
         # call the soundVolumeView tool and export all audio devices to a json file
-        command = f'{self.sound_volume_view_path} /sjson {devices_json_path}'
+        command = f'{self.sound_volume_view_path} /sjson {VALID_DEVICES_FILE_PATH}'
         #res = os.system(command)
         res = subprocess.call(command, shell=False)
 
@@ -425,18 +436,18 @@ class EnforceAudioDeviceApp(QApplication):
             # try to open the files 10 times, fail if not possible
             for _ in range(10):
                 try:
-                    with open(devices_json_path, 'r', encoding='UTF-16') as file:
+                    with open(VALID_DEVICES_FILE_PATH, 'r', encoding='UTF-16') as file:
                         data = file.read()
                         device_dump = json.loads(data)
                         self.load_audio_devices_from_device_json(device_dump)
                         file.close()
-                        os.remove(devices_json_path)
+                        os.remove(VALID_DEVICES_FILE_PATH)
                         break
                 except IOError:
                     time.sleep(1)
             else:
                 logging.error(
-                    f'Failed to access default devices in {devices_json_path}, SoundVolumeView failed to create the file.')
+                    f'Failed to access default devices in {VALID_DEVICES_FILE_PATH}, SoundVolumeView failed to create the file.')
                 return False
         else:
             logging.error(
@@ -465,14 +476,14 @@ class EnforceAudioDeviceApp(QApplication):
                 return True
 
         logging.warning(
-            f'No Apps defined in \'{os.path.abspath(APPCONFIGJSON)}\'. Please add apps to the config file and reload the config via the system tray.')
+            f'No Apps defined in \'{CONFIG_FILE_PATH}\'. Please add apps to the config file and reload the config via the system tray.')
         self.send_notify("Enforce Audio Device Error",
-                            f'No Apps defined in \'{APPCONFIGJSON}\'.\nPlease add apps to the config file and reload the config via the system tray.', resource_path(ALERT_ICON))
+                         f'No Apps defined in \'{os.path.basename(CONFIG_FILE_PATH)}\'.\nPlease add apps to the config file and reload the config via the system tray.', ALERT_ICON_FILE_PATH)
         return False
 
     # ------------------------------------------------------------------------------------------
 
-    def send_notify(self, title : str, message : str, icon, duration : int = 10):
+    def send_notify(self, title: str, message: str, icon, duration: int = 10):
         notification.notify(
             title=title,
             message=message,
@@ -494,8 +505,10 @@ class EnforceAudioDeviceTrayIcon(QSystemTrayIcon):
         self.create_tray_menu()
         self.autostart.setChecked(self.app.settings.contains(APP_NAME))
 
+    # ------------------------------------------------------------------------------------------
+
     def create_tray_menu(self):
-        icon = QIcon(resource_path(TRAY_ICON))
+        icon = QIcon(TRAY_ICON_FILE_PATH)
         self.setToolTip(TRAY_TOOLTIP)
         self.setIcon(icon)
         self.setVisible(True)
@@ -506,15 +519,26 @@ class EnforceAudioDeviceTrayIcon(QSystemTrayIcon):
         # Create reload option
         self.reload = self.menu.addAction(
             "Reload Config", self.app.start_reload_config)
+
+        # Create open config folder option
+        self.open_config = self.menu.addAction(
+            "Open Config Folder", self.open_config_folder)
+
         # Create autostart option
         self.autostart = self.menu.addAction(
             "Launch on Boot", self.toggle_autostart_state)
         self.autostart.setCheckable(True)
+
+        # separator
         self.menu.addSeparator()
+
         # Create quit option
         self.quit = self.menu.addAction("Quit", self.app.start_quit)
+
         # Adding options to the System Tray
         self.setContextMenu(self.menu)
+
+    # ------------------------------------------------------------------------------------------
 
     def toggle_autostart_state(self):
         current_state = self.app.settings.contains(APP_NAME)
@@ -526,6 +550,13 @@ class EnforceAudioDeviceTrayIcon(QSystemTrayIcon):
         self.autostart.setChecked(new_state)
         logging.info(
             f'Added {APP_NAME} to autostart' if new_state else f'Removed {APP_NAME} from autostart')
+
+    # ------------------------------------------------------------------------------------------
+
+    def open_config_folder(self):
+        path = os.path.dirname(CONFIG_FILE_PATH)
+        os.startfile(path)
+
 
 # ------------------------------------------------------------------------------------------
 
@@ -541,6 +572,7 @@ def check_already_running():
     return False
 
 # ------------------------------------------------------------------------------------------
+
 
 if __name__ == '__main__':
     if not check_already_running():
