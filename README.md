@@ -15,7 +15,7 @@ The tool is mainly based on PyQt5 and WMI. All dependencies are packed into the 
 
 Right click the tray icon to reload the config, quit the app or to set the autostart option.
 
-- Download the latest version from the [Releases](https://github.com/TheCoCe/EnforceAudioDevice/releases)
+- Download the latest version from the [Releases](https://github.com/TheCoCe/EnforceAudioDevice/releases/latest)
 - Move the `EnforceAudioDevice.exe` to your preferred location (this will generate files, so you might want to place it into a folder)
 - Start the application
 - Open the newly created config file and set the `SoundVolumeViewPath":` to your exe path. E.g. `C:\Programs\SoundVolumeView.exe`
