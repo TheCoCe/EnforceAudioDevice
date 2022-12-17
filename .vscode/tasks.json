@@ -1,0 +1,17 @@
+{
+    // See https://go.microsoft.com/fwlink/?LinkId=733558
+    // for the documentation about the tasks.json format
+    "version": "2.0.0",
+    "tasks": [
+        {
+            "label": "Build executable",
+            "type": "shell",
+            "command": "pyinstaller EnforceAudioDevice.py -F --noconsole -i EnforceAudioDevice.ico --add-data 'EnforceAudioDevice.ico;.' --add-data 'EnforceAudioDeviceAlert.ico;.' --add-data 'ContextMenu.png;.' --hidden-import plyer.platforms.win.notification",
+            "problemMatcher": [],
+            "group": {
+                "kind": "build",
+                "isDefault": true
+            }
+        }
+    ]
+}
