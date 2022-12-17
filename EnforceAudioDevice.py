@@ -54,6 +54,7 @@ VALID_DEVICES_FILE_PATH = app_path('ValidDevices.json')
 # resources
 TRAY_ICON_FILE_PATH = resource_path('EnforceAudioDevice.ico')
 ALERT_ICON_FILE_PATH = resource_path('EnforceAudioDeviceAlert.ico')
+CONTEXT_MENU_BG_FILE_PATH = resource_path('ContextMenu.png')
 # strings
 TRAY_TOOLTIP = 'EnforceAudioDevice'
 # registry key
@@ -545,28 +546,30 @@ class EnforceAudioDeviceTrayIcon(QSystemTrayIcon):
         self.menu = QMenu("Options")
         self.menu.setWindowFlags(self.menu.windowFlags() | Qt.FramelessWindowHint | Qt.NoDropShadowWindowHint)
         self.menu.setAttribute(Qt.WA_TranslucentBackground)
-        self.menu.setStyleSheet("""
-            QMenu{
-                  background-color: #ffffff;
-                  border-image: url("P:/Stuff/_Projects/Programming/Python/EnforceAudioDevice/ContextMenu.png") 1 stretch;
+        string = f"""
+            QMenu{{
+                  background-color: #4c241d;
+                  border-image: url("{CONTEXT_MENU_BG_FILE_PATH.replace(os.sep, '/')}") 0 stretch;
                   border-radius: 10px;
-            }
-            QMenu::item {
+            }}
+            QMenu::item {{
                     background-color: transparent;
                     padding: 5px 5px;
                     margin: 10px 10px;
-            }
+            }}
             QMenu::item:selected 
-            { 
+            {{
                 background-color: #fc8c29;
                 border-radius: 5px
-            }
-            QMenu::item:disabled {
+            }}
+            QMenu::item:disabled {{
                 background-color: transparent;
                 color: #ffffff;
                 font-weight: bold;
-            }
-        """)
+            }}
+        """
+        print(string)
+        self.menu.setStyleSheet(string)
 
         self.act_device = self.menu.addAction("Enforce Audio Device")
         self.act_device.setEnabled(False)
