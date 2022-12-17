@@ -9,7 +9,7 @@ import wmi
 import pythoncom
 # ui & threads
 from PyQt5.QtWidgets import (QApplication, QSystemTrayIcon, QMenu)
-from PyQt5.QtCore import QThread, QObject, pyqtSignal, QTimer, QEventLoop, QSettings, QCoreApplication
+from PyQt5.QtCore import QThread, QObject, pyqtSignal, QTimer, QEventLoop, QSettings, QCoreApplication, Qt
 from PyQt5.QtGui import QIcon
 # show notifications
 from plyer import notification
@@ -192,12 +192,12 @@ class ProcessWorker(QThread):
         logging.info(
             ('Updated' if already_contains_app else 'Added') + ' app: ' + application)
         # check if the process is already running and handle it
-        self.check_processes(app_name)
+        self.check_process(app_name)
         return
 
     # -------------------------------------------------------------------------------------------
 
-    def check_processes(self, process_name):
+    def check_process(self, process_name):
         pythoncom.CoInitialize()
         c = wmi.WMI()
 
@@ -263,6 +263,29 @@ class ProcessWorker(QThread):
         timer.timeout.connect(event)
         timer.timeout.connect(lambda: self.delayedCommandTimers.remove(timer))
         timer.start(delay_msec)
+
+    # ------------------------------------------------------------------------------------------
+
+    def stop_all_command_timers(self):
+        for t in self.delayedCommandTimers:
+            t.stop()
+        self.delayedCommandTimers.clear()
+
+    # ------------------------------------------------------------------------------------------
+
+    def reset_process_states(self):
+        # cancel all pending timers
+        self.stop_all_command_timers()
+
+        pythoncom.CoInitialize()
+        c = wmi.WMI()
+
+        # reset current state of all processes and set the device for any active ones again
+        for p in self.process_dict:
+            self.process_dict[p]['State'] = False
+            for process in c.Win32_Process(name=p):
+                self.process_started(p, process.ProcessID)
+                break;
 
 ############################################################################################
 # EnforceAudioDeviceApp
@@ -345,6 +368,11 @@ class EnforceAudioDeviceApp(QApplication):
 
     def finish_reload_config(self):
         self.load_config_and_start_worker()
+
+    # ------------------------------------------------------------------------------------------
+
+    def reset_processes(self):
+        self.thread.reset_process_states()
 
     # ------------------------------------------------------------------------------------------
 
@@ -515,10 +543,62 @@ class EnforceAudioDeviceTrayIcon(QSystemTrayIcon):
 
         # Creating the options
         self.menu = QMenu("Options")
+        self.menu.setWindowFlags(self.menu.windowFlags() | Qt.FramelessWindowHint | Qt.NoDropShadowWindowHint)
+        self.menu.setAttribute(Qt.WA_TranslucentBackground)
+        self.menu.setStyleSheet("""
+            QMenu{
+                  background-color: #ffffff;
+                  border-image: url("P:/Stuff/_Projects/Programming/Python/EnforceAudioDevice/ContextMenu.png") 1 stretch;
+                  border-radius: 10px;
+            }
+            QMenu::item {
+                    background-color: transparent;
+                    padding: 5px 5px;
+                    margin: 10px 10px;
+            }
+            QMenu::item:selected 
+            { 
+                background-color: #fc8c29;
+                border-radius: 5px
+            }
+            QMenu::item:disabled {
+                background-color: transparent;
+                color: #ffffff;
+                font-weight: bold;
+            }
+        """)
+
+        self.act_device = self.menu.addAction("Enforce Audio Device")
+        self.act_device.setEnabled(False)
+
         # Creating config sub menu
         self.config_menu = QMenu("Config")
+        self.config_menu.setWindowFlags(self.menu.windowFlags() | Qt.FramelessWindowHint | Qt.NoDropShadowWindowHint)
+        self.config_menu.setAttribute(Qt.WA_TranslucentBackground)
+        self.config_menu.setStyleSheet("""
+            QMenu{
+                  background-color: #ffffff;
+                  border: 5px solid #4c241d;
+                  border-radius: 10px;
+            }
+            QMenu::item {
+                    background-color: transparent;
+                    padding: 5px 5px;
+                    margin: 5px 5px;
+            }
+            QMenu::item:selected 
+            { 
+                background-color: #fc8c29;
+                border-radius: 5px
+            }
+            QMenu::item:disabled {
+                background-color: transparent;
+                color: #ffffff;
+                font-weight: bold;
+            }
+        """)
 
-        # Create reload option
+        # Create reload config option
         self.act_reload = self.config_menu.addAction(
             "Reload Config", self.app.start_reload_config)
 
@@ -540,6 +620,10 @@ class EnforceAudioDeviceTrayIcon(QSystemTrayIcon):
 
         # add the config menu to the menu
         self.act_open_config_menu = self.menu.addMenu(self.config_menu)
+
+        # Create reset audio devices button
+        self.act_reset = self.menu.addAction(
+            "Reset audio devices", self.app.reset_processes)
 
         # Create autostart option
         self.act_autostart = self.menu.addAction(
