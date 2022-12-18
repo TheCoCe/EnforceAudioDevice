@@ -56,8 +56,11 @@ TRAY_ICON_FILE_PATH = resource_path('EnforceAudioDevice.ico')
 ALERT_ICON_FILE_PATH = resource_path('EnforceAudioDeviceAlert.ico')
 CONTEXT_MENU_BG_FILE_PATH = resource_path('ContextMenu.png')
 CONTEXT_MENU_UNCHECKED_FILE_PATH = resource_path('Unchecked.png')
+CONTEXT_MENU_UNCHECKED_SELECTED_FILE_PATH = resource_path('UncheckedSelected.png')
 CONTEXT_MENU_CHECKED_FILE_PATH = resource_path('Checked.png')
+CONTEXT_MENU_CHECKED_SELECTED_FILE_PATH = resource_path('CheckedSelected.png')
 CONTEXT_MENU_ARROW = resource_path('Arrow.png')
+CONTEXT_MENU_ARROW_SELECTED = resource_path('ArrowSelected.png')
 # strings
 TRAY_TOOLTIP = 'EnforceAudioDevice'
 # registry key
@@ -550,7 +553,7 @@ class EnforceAudioDeviceTrayIcon(QSystemTrayIcon):
         self.menu.setAttribute(Qt.WA_TranslucentBackground)
         self.menu.setStyleSheet(f"""
             QMenu{{
-                  background-color: #4c241d;
+                  background-color: #FFFFFF;
                   border-image: url("{CONTEXT_MENU_BG_FILE_PATH.replace(os.sep, '/')}") 0 stretch;
                   border-radius: 10px;
             }}
@@ -572,11 +575,20 @@ class EnforceAudioDeviceTrayIcon(QSystemTrayIcon):
             QMenu::indicator:non-exclusive:checked {{
                 image: url("{CONTEXT_MENU_CHECKED_FILE_PATH.replace(os.sep, '/')}");
             }}
+            QMenu::indicator:non-exclusive:checked:selected {{
+                image: url("{CONTEXT_MENU_CHECKED_SELECTED_FILE_PATH.replace(os.sep, '/')}");
+            }}
             QMenu::indicator:non-exclusive:unchecked {{
                 image: url("{CONTEXT_MENU_UNCHECKED_FILE_PATH.replace(os.sep, '/')}");
             }}
+            QMenu::indicator:non-exclusive:unchecked:selected {{
+                image: url("{CONTEXT_MENU_UNCHECKED_SELECTED_FILE_PATH.replace(os.sep, '/')}");
+            }}
             QMenu::right-arrow {{
                 image: url("{CONTEXT_MENU_ARROW.replace(os.sep, '/')}");
+            }}
+            QMenu::right-arrow:selected {{
+                image: url("{CONTEXT_MENU_ARROW_SELECTED.replace(os.sep, '/')}");
             }}
         """)
 
@@ -590,7 +602,7 @@ class EnforceAudioDeviceTrayIcon(QSystemTrayIcon):
         self.config_menu.setStyleSheet("""
             QMenu{
                   background-color: #ffffff;
-                  border: 5px solid #4c241d;
+                  border: 5px solid #FFFFFF;
                   border-radius: 10px;
             }
             QMenu::item {
