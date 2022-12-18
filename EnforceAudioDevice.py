@@ -24,7 +24,7 @@ def resource_path(relative_path):
     base_path = getattr(sys, '_MEIPASS', os.path.dirname(
         os.path.abspath(__file__)))
 
-    return os.path.join(base_path, relative_path)
+    return os.path.join(base_path, 'res', relative_path)
 
 # ------------------------------------------------------------------------------------------
 
@@ -55,6 +55,9 @@ VALID_DEVICES_FILE_PATH = app_path('ValidDevices.json')
 TRAY_ICON_FILE_PATH = resource_path('EnforceAudioDevice.ico')
 ALERT_ICON_FILE_PATH = resource_path('EnforceAudioDeviceAlert.ico')
 CONTEXT_MENU_BG_FILE_PATH = resource_path('ContextMenu.png')
+CONTEXT_MENU_UNCHECKED_FILE_PATH = resource_path('Unchecked.png')
+CONTEXT_MENU_CHECKED_FILE_PATH = resource_path('Checked.png')
+CONTEXT_MENU_ARROW = resource_path('Arrow.png')
 # strings
 TRAY_TOOLTIP = 'EnforceAudioDevice'
 # registry key
@@ -546,7 +549,7 @@ class EnforceAudioDeviceTrayIcon(QSystemTrayIcon):
         self.menu = QMenu("Options")
         self.menu.setWindowFlags(self.menu.windowFlags() | Qt.FramelessWindowHint | Qt.NoDropShadowWindowHint)
         self.menu.setAttribute(Qt.WA_TranslucentBackground)
-        string = f"""
+        self.menu.setStyleSheet(f"""
             QMenu{{
                   background-color: #4c241d;
                   border-image: url("{CONTEXT_MENU_BG_FILE_PATH.replace(os.sep, '/')}") 0 stretch;
@@ -560,16 +563,23 @@ class EnforceAudioDeviceTrayIcon(QSystemTrayIcon):
             QMenu::item:selected 
             {{
                 background-color: #fc8c29;
-                border-radius: 5px
+                border-radius: 5px;
             }}
             QMenu::item:disabled {{
                 background-color: transparent;
                 color: #ffffff;
                 font-weight: bold;
             }}
-        """
-        print(string)
-        self.menu.setStyleSheet(string)
+            QMenu::indicator:non-exclusive:checked {{
+                image: url("{CONTEXT_MENU_CHECKED_FILE_PATH.replace(os.sep, '/')}");
+            }}
+            QMenu::indicator:non-exclusive:unchecked {{
+                image: url("{CONTEXT_MENU_UNCHECKED_FILE_PATH.replace(os.sep, '/')}");
+            }}
+            QMenu::right-arrow {{
+                image: url("{CONTEXT_MENU_ARROW.replace(os.sep, '/')}");
+            }}
+        """)
 
         self.act_device = self.menu.addAction("Enforce Audio Device")
         self.act_device.setEnabled(False)

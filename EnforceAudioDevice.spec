@@ -8,7 +8,7 @@ a = Analysis(
     ['EnforceAudioDevice.py'],
     pathex=[],
     binaries=[],
-    datas=[('EnforceAudioDevice.ico', '.'), ('EnforceAudioDeviceAlert.ico', '.')],
+    datas=[('res/EnforceAudioDevice.ico', 'res'), ('res/EnforceAudioDeviceAlert.ico', 'res'), ('res/ContextMenu.png', 'res'), ('res/Unchecked.png', 'res'), ('res/Checked.png', 'res'), ('res/Arrow.png', 'res')],
     hiddenimports=['plyer.platforms.win.notification'],
     hookspath=[],
     hooksconfig={},
@@ -41,5 +41,5 @@ exe = EXE(
     target_arch=None,
     codesign_identity=None,
     entitlements_file=None,
-    icon=['EnforceAudioDevice.ico'],
+    icon=['res/EnforceAudioDevice.ico'],
 )

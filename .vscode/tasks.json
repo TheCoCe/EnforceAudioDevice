@@ -6,7 +6,7 @@
         {
             "label": "Build executable",
             "type": "shell",
-            "command": "pyinstaller EnforceAudioDevice.py -F --noconsole -i EnforceAudioDevice.ico --add-data 'EnforceAudioDevice.ico;.' --add-data 'EnforceAudioDeviceAlert.ico;.' --add-data 'ContextMenu.png;.' --hidden-import plyer.platforms.win.notification",
+            "command": "pyinstaller EnforceAudioDevice.spec",
             "problemMatcher": [],
             "group": {
                 "kind": "build",
