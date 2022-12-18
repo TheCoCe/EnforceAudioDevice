@@ -295,7 +295,6 @@ class ProcessWorker(QThread):
 # EnforceAudioDeviceApp
 ############################################################################################
 
-
 class EnforceAudioDeviceApp(QApplication):
     stop_signal = pyqtSignal()
 
